@@ -66,6 +66,16 @@ jobs:
 
         bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
 
+          ## CREATE buildDetails.txt
+        printf "Localversion: `./getutsrel`
+        Clang version: `clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`
+        Build: `echo $BUILD_START`
+        Defconfig: `echo $DEFCONFIG`
+        " >> buildDetails.txt
+
+        echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
+
+        mv .config build_config.txt
         gitsha1=$(git rev-parse --short HEAD)
         buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
       working-directory: kernel_root
