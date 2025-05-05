@@ -100,6 +100,12 @@ jobs:
         path: kernel_root/anykernel3/*
         compression-level: 9
 
+    - name: Cleanup useless files
+      continue-on-error: true
+      if: github.event.inputs.BUILD_TARGET == 'kernel'
+      run: |
+        rm out/vmlinux.o out/vmlinux out/System.map
+
     - name: Upload to Telegram
       if: github.event.inputs.UPLOAD_TO_TG == 'true'
       env:
@@ -107,6 +113,6 @@ jobs:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
         if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
-          ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/maazm7d/Xed7Bot.git --depth=1 i && cp ./i/* . && rm -rf i && bash $(pwd)/script.sh $ZIP "`cat buildDetails.txt`"
+          ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/maazm7d/Xed7Bot.git --depth=1 s && cp ./s/* . && rm -rf s && bash $(pwd)/script.sh $ZIP "`cat buildDetails.txt`"
         fi
       working-directory: kernel_root
