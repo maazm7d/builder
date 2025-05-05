@@ -68,13 +68,13 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Config-${{ steps.buildKernel.outputs.buildDetails }}
-        path: kernel_root/out/.config
+        path: kernel_root/.config
 
     - name: Upload kernel images
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
         path: |
-          kernel_root/out/arch/arm64/boot/Image.gz
-          kernel_root/out/arch/arm64/boot/dts/exynos/*.dtb
-          kernel_root/out/arch/arm64/boot/dts/samsung/*.dtb
+          kernel_root/arch/arm64/boot/Image.gz
+          kernel_root/arch/arm64/boot/dts/exynos/*.dtb
+          kernel_root/arch/arm64/boot/dts/samsung/*.dtb
