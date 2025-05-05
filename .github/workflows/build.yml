@@ -84,5 +84,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: AnyKernel3-${{ steps.buildKernel.outputs.buildDetails }}
-        path: kernel_root/anyKernel3/*
+        path: kernel_root/anykernel3/*
         compression-level: 9
