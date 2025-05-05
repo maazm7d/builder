@@ -64,12 +64,6 @@ jobs:
         buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d%H%M%S'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
       working-directory: kernel_root
 
-    - name: Upload config
-      uses: actions/upload-artifact@v4
-      with:
-        name: Config-${{ steps.buildKernel.outputs.buildDetails }}
-        path: kernel_root/.config
-
     - name: Upload kernel images
       uses: actions/upload-artifact@v4
       with:
