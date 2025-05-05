@@ -1,0 +1,80 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      BRANCH:
+        description: Kernel branch
+        default: 'main'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: maazm7d/kernel_samsung_a12
+        path: kernel_root
+        ref: ${{ github.event.inputs.BRANCH }}
+        show-progress: false
+        fetch-depth: 1
+
+    - name: Prepare dependencies
+      run: |
+        sudo apt update -y
+        sudo apt install bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4 -y
+        sudo aptitude install libssl-dev -y
+
+    - name: Fetch toolchains (Clang 11 + GCC 4.9)
+      run: |
+        mkdir toolchains && cd toolchains
+        git clone --depth=1 -b clang-11 https://github.com/rsuntk/toolchains.git clang
+        git clone --depth=1 -b androidcc-4.9 https://github.com/rsuntk/toolchains.git google
+      working-directory: kernel_root
+
+    - name: Set timezone (Asia/Kolkata)
+      run: |
+        sudo rm /etc/localtime
+        sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+
+    - name: Clone KernelSU-Next
+      run: |
+        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+      working-directory: kernel_root
+
+    - name: Build kernel
+      id: buildKernel
+      run: |
+        export PATH=$(pwd)/toolchains/clang/bin:$PATH
+        export CROSS_COMPILE=$(pwd)/toolchains/google/bin/aarch64-linux-android-
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        export KBUILD_BUILD_USER="maaz"
+        export KBUILD_BUILD_HOST="github"
+        export BUILD_START=`date`
+        export IS_CI=true
+
+        export DEFCONFIG="exynos850-a12snsxx_defconfig"
+        export DEVICE_ID="A12s"
+
+        bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
+
+        gitsha1=$(git rev-parse --short HEAD)
+        buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d%H%M%S'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
+      working-directory: kernel_root
+
+    - name: Upload config
+      uses: actions/upload-artifact@v4
+      with:
+        name: Config-${{ steps.buildKernel.outputs.buildDetails }}
+        path: kernel_root/out/.config
+
+    - name: Upload kernel images
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
+        path: |
+          kernel_root/out/arch/arm64/boot/Image.gz
+          kernel_root/out/arch/arm64/boot/dts/exynos/*.dtb
+          kernel_root/out/arch/arm64/boot/dts/samsung/*.dtb
