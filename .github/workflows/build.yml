@@ -73,6 +73,9 @@ jobs:
           kernel_root/arch/arm64/boot/dts/exynos/*.dtb
           kernel_root/arch/arm64/boot/dts/samsung/*.dtb
 
+    - name: Copy Image.gz to AnyKernel3
+      run: |
+          cp kernel_root/arch/arm64/boot/Image.gz kernel_root/anykernel3/
 
     - name: Upload AnyKernel3
       uses: actions/upload-artifact@v4
