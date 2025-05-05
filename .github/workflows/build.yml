@@ -106,13 +106,33 @@ jobs:
       run: |
         rm out/vmlinux.o out/vmlinux out/System.map
 
-    - name: Upload to Telegram
+    - name: Upload to Telegram (Debug)
       if: github.event.inputs.UPLOAD_TO_TG == 'true'
       env:
         CHAT_ID: ${{ secrets.CHAT_ID }}
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
-        if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
-          ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/maazm7d/Xed7Bot.git --depth=1 s && cp ./s/* . && rm -rf s && bash $(pwd)/script.sh $ZIP "`cat buildDetails.txt`"
+        echo "Starting Telegram upload section..."
+        echo "BOT_TOKEN: ${BOT_TOKEN:0:4}***"  # Partial masking
+        echo "CHAT_ID: ${CHAT_ID}"
+
+        if [ ! -z "${BOT_TOKEN}" ]; then
+          echo "Finding ZIP file..."
+          ZIP=$(find `pwd` -name "*.zip")
+          echo "ZIP found: $ZIP"
+
+          echo "Cloning Telegram bot script..."
+          git clone https://github.com/maazm7d/Xed7Bot.git --depth=1 s || { echo "Git clone failed"; exit 1; }
+
+          echo "Copying script files..."
+          cp ./s/* . || { echo "Failed to copy scripts"; exit 1; }
+
+          echo "Removing temp script folder..."
+          rm -rf s
+
+          echo "Running Telegram script..."
+          bash $(pwd)/script.sh "$ZIP" "$(cat buildDetails.txt)" || { echo "Script failed with exit code $?"; exit 26; }
+        else
+          echo "BOT_TOKEN is empty, skipping Telegram upload."
         fi
       working-directory: kernel_root
