@@ -117,13 +117,35 @@ jobs:
         zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" *
         cd ..
 
-        TITLE="${{ github.event.inputs.AK3_NAME }}"
-        DEFCONFIG="exynos850-a12snsxx_defconfig"
+        escape_md() {
+  echo "$1" | sed -e 's/\\/\\\\/g' \
+                  -e 's/\*/\\*/g' \
+                  -e 's/_/\\_/g' \
+                  -e 's//\/g' \
+                  -e 's//\/g' \
+                  -e 's/(/\/g' \
+                  -e 's/)/\/g' \
+                  -e 's/~/\\~/g' \
+                  -e 's/`/\\`/g' \
+                  -e 's/>/\\>/g' \
+                  -e 's/#/\\#/g' \
+                  -e 's/\+/\\+/g' \
+                  -e 's/-/\\-/g' \
+                  -e 's/=/\\=/g' \
+                  -e 's/\|/\\|/g' \
+                  -e 's/{/\\{/g' \
+                  -e 's/}/\\}/g' \
+                  -e 's/\./\\./g' \
+                  -e 's/!/\\!/g'
+}
+
+TITLE_ESCAPED=$(escape_md "$TITLE")
+DEFCONFIG_ESCAPED=$(escape_md "$DEFCONFIG")
         BUILD_DATE=$(date +'%H%d%m%y')
         WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
         curl -F document=@"AnyKernel3-${TITLE}.zip" \
              -F chat_id="$CHAT_ID" \
-             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* ${TITLE}\n*Defconfig:* ${DEFCONFIG}\n*Date:* ${BUILD_DATE}\n[Workflow\\ Run](${WORKFLOW_URL})" \
+             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* ${TITLE_ESCAPED}\n*Defconfig:* ${DEFCONFIG_ESCAPED}\n*Date:* ${BUILD_DATE}\n[Workflow\\ Run](${WORKFLOW_URL})" \
              -F parse_mode=MarkdownV2 \
              https://api.telegram.org/bot$BOT_TOKEN/sendDocument
