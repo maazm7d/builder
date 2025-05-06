@@ -119,7 +119,6 @@ jobs:
 
         TITLE="${{ github.event.inputs.AK3_NAME }}"
         DEFCONFIG="exynos850-a12snsxx_defconfig"
-        CLANG_VERSION="$($GITHUB_WORKSPACE/kernel_root/toolchains/clang/bin/clang --version | head -n 1 | sed -e 's/[-\][()*_~`>#+=|{}.!]/\\&/g')"
         BUILD_DATE=$(date +'%H%d%m%y')
         WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
