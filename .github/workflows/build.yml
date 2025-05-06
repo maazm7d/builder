@@ -125,6 +125,6 @@ jobs:
 
         curl -F document=@"AnyKernel3-${TITLE}.zip" \
              -F chat_id="$CHAT_ID" \
-             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* $TITLE\n*Defconfig:* $DEFCONFIG\n*Clang:* $CLANG_VERSION\n*Date:* $BUILD_DATE\n[Workflow Run]($WORKFLOW_URL)" \
-             -F parse_mode=Markdown \
+             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* ${TITLE}\n*Defconfig:* ${DEFCONFIG}\n*Clang:* ${CLANG_VERSION}\n*Date:* ${BUILD_DATE}\n[Workflow Run](${WORKFLOW_URL})" \
+             -F parse_mode=MarkdownV2
              https://api.telegram.org/bot$BOT_TOKEN/sendDocument
