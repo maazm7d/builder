@@ -114,9 +114,17 @@ jobs:
         CHAT_ID: ${{ secrets.CHAT_ID }}
       run: |
         cd ak3_upload
-        zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
+        zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" *
         cd ..
-        curl -F document=@"AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" \
+
+        TITLE="${{ github.event.inputs.AK3_NAME }}"
+        DEFCONFIG="exynos850-a12snsxx_defconfig"
+        CLANG_VERSION="$(${{ github.event.inputs.TOOLCHAIN_PATH }}/bin/clang --version | head -n 1)"
+        BUILD_DATE=$(date +'%H%d%m%y')
+        WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+        curl -F document=@"AnyKernel3-${TITLE}.zip" \
              -F chat_id="$CHAT_ID" \
-             -F caption="✅ Kernel build for A12s\n\nBuild Name: ${{ github.event.inputs.AK3_NAME }}" \
+             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* $TITLE\n*Defconfig:* $DEFCONFIG\n*Clang:* $CLANG_VERSION\n*Date:* $BUILD_DATE\n[Workflow Run]($WORKFLOW_URL)" \
+             -F parse_mode=Markdown \
              https://api.telegram.org/bot$BOT_TOKEN/sendDocument
