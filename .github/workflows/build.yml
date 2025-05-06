@@ -119,12 +119,12 @@ jobs:
 
         TITLE="${{ github.event.inputs.AK3_NAME }}"
         DEFCONFIG="exynos850-a12snsxx_defconfig"
-        CLANG_VERSION="$(${{ github.event.inputs.TOOLCHAIN_PATH }}/bin/clang --version | head -n 1)"
+        CLANG_VERSION="$($GITHUB_WORKSPACE/kernel_root/toolchains/clang/bin/clang --version | head -n 1 | sed -e 's/\./\\./g' -e 's/ /\\ /g' -e 's/(/\/g' -e 's/)/\/g')"
         BUILD_DATE=$(date +'%H%d%m%y')
         WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
         curl -F document=@"AnyKernel3-${TITLE}.zip" \
              -F chat_id="$CHAT_ID" \
-             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* ${TITLE}\n*Defconfig:* ${DEFCONFIG}\n*Clang:* ${CLANG_VERSION}\n*Date:* ${BUILD_DATE}\n[Workflow Run](${WORKFLOW_URL})" \
-             -F parse_mode=MarkdownV2
+             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* ${TITLE}\n*Defconfig:* ${DEFCONFIG}\n*Clang:* ${CLANG_VERSION}\n*Date:* ${BUILD_DATE}\n[Workflow\\ Run](${WORKFLOW_URL})" \
+             -F parse_mode=MarkdownV2 \
              https://api.telegram.org/bot$BOT_TOKEN/sendDocument
