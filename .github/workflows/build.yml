@@ -108,22 +108,15 @@ jobs:
         path: ak3_upload
 
     - name: Upload AnyKernel3 to Telegram
-      if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
-      env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
-      run: |
-        cd ak3_upload
-        zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" *
-        cd ..
+  if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
+  env:
+    BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+    CHAT_ID: ${{ secrets.CHAT_ID }}
+  run: |
+    cd ak3_upload
+    zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" *
+    cd ..
 
-        TITLE="${{ github.event.inputs.AK3_NAME }}"
-        DEFCONFIG="exynos850-a12snsxx_defconfig"
-        BUILD_DATE=$(date +'%H%d%m%y')
-        WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-        curl -F document=@"AnyKernel3-${TITLE}.zip" \
-             -F chat_id="$CHAT_ID" \
-             -F caption="✅ *Kernel Build for A12s*\n\n*Title:* ${TITLE}\n*Defconfig:* ${DEFCONFIG}\n*Date:* ${BUILD_DATE}\n[Workflow\\ Run](${WORKFLOW_URL})" \
-             -F parse_mode=MarkdownV2 \
-             https://api.telegram.org/bot$BOT_TOKEN/sendDocument
+    curl -F document=@"AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" \
+         -F chat_id="$CHAT_ID" \
+         https://api.telegram.org/bot$BOT_TOKEN/sendDocument
