@@ -47,12 +47,10 @@ jobs:
         sudo rm /etc/localtime
         sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
-    - name: Apply susfs patch to KernelSU-Next
-      run: |
-          ls -la kernel_root
-          cd KernelSU-Next
-          patch -p1 < ../susfs_v1.5.7.patch
-          working-directory: kernel_root
+    - name: Apply SUSFS Patch to KernelSU-Next
+      working-directory: kernel_root/KernelSU-Next
+      run: patch -p1 < ../susfs_v1.5.7.patch
+      shell: bash
 
     - name: Build kernel
       id: buildKernel
@@ -62,27 +60,13 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         export KBUILD_BUILD_USER="maaz"
         export KBUILD_BUILD_HOST="github"
-        export BUILD_START=`date`
+        export BUILD_START=date
         export IS_CI=true
 
         export DEFCONFIG="exynos850-a12snsxx_defconfig"
         export DEVICE_ID="A12s"
 
         bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
-
-          ## CREATE buildDetails.txt
-        printf "Localversion: `./getutsrel`
-        Clang version: `clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`
-        Build: `echo $BUILD_START`
-        Defconfig: `echo $DEFCONFIG`
-        " >> buildDetails.txt
-
-        echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
-
-        mv .config build_config.txt
-        gitsha1=$(git rev-parse --short HEAD)
-        buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
-      working-directory: kernel_root
 
     - name: Upload kernel images
       uses: actions/upload-artifact@v4
@@ -95,7 +79,7 @@ jobs:
 
     - name: Copy Image to AnyKernel3
       run: |
-          cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel3/
+        cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel3/
 
     - name: Upload AnyKernel3
       uses: actions/upload-artifact@v4
