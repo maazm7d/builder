@@ -49,6 +49,7 @@ jobs:
 
     - name: Apply susfs patch to KernelSU-Next
       run: |
+          ls -la kernel_root
           cd KernelSU-Next
           patch -p1 < ../susfs_v1.5.7.patch
           working-directory: kernel_root
