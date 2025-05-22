@@ -4,14 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       BRANCH:
-        description: Kernel branch
+        description: 'Kernel branch'
         default: 'main'
         required: true
       AK3_NAME:
-        description: Enter custom name for AnyKernel3 artifact
+        description: 'Enter custom name for AnyKernel3 artifact'
         required: true
       UPLOAD_TO_TG:
-        description: Upload to Telegram
+        description: 'Upload to Telegram'
+        required: false
         type: boolean
 
 jobs:
