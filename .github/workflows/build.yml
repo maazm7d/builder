@@ -47,9 +47,10 @@ jobs:
         sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
   - name: Apply susfs patch to KernelSU-Next
-  run: |
-    cd KernelSU-Next
-    patch -p1 < ../susfs_v1.5.7.patch
+        run: |
+          cd KernelSU-Next
+          patch -p1 < ../susfs_v1.5.7.patch
+        working-directory: kernel_root
 
     - name: Build kernel
       id: buildKernel
