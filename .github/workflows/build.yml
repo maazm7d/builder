@@ -45,10 +45,10 @@ jobs:
         sudo rm /etc/localtime
         sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
-    - name: Clone KernelSU-Next
-      run: |
-        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
-      working-directory: kernel_root
+  - name: Apply susfs patch to KernelSU-Next
+  run: |
+    cd KernelSU-Next
+    patch -p1 < ../susfs_v1.5.7.patch
 
     - name: Build kernel
       id: buildKernel
