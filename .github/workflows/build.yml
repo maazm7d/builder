@@ -4,15 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       BRANCH:
-        description: 'Kernel branch'
+        description: Kernel branch
         default: 'main'
         required: true
       AK3_NAME:
-        description: 'Enter custom name for AnyKernel3 artifact'
+        description: Enter custom name for AnyKernel3 artifact
         required: true
       UPLOAD_TO_TG:
-        description: 'Upload to Telegram'
-        required: false
+        description: Upload to Telegram
         type: boolean
 
 jobs:
@@ -27,7 +26,6 @@ jobs:
         ref: ${{ github.event.inputs.BRANCH }}
         show-progress: false
         fetch-depth: 1
-        submodules: true
 
     - name: Prepare dependencies
       run: |
@@ -47,10 +45,10 @@ jobs:
         sudo rm /etc/localtime
         sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
-    - name: Apply SUSFS Patch to KernelSU-Next
-      working-directory: kernel_root/KernelSU-Next
-      run: patch -p1 < ../susfs_v1.5.7.patch
-      shell: bash
+    - name: Clone KernelSU-Next
+      run: |
+        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+      working-directory: kernel_root
 
     - name: Build kernel
       id: buildKernel
@@ -60,13 +58,26 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         export KBUILD_BUILD_USER="maaz"
         export KBUILD_BUILD_HOST="github"
-        export BUILD_START=date
+        export BUILD_START=`date`
         export IS_CI=true
 
         export DEFCONFIG="exynos850-a12snsxx_defconfig"
         export DEVICE_ID="A12s"
 
         bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
+
+          ## CREATE buildDetails.txt
+        printf "Localversion: `./getutsrel`
+        Clang version: `clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`
+        Build: `echo $BUILD_START`
+        Defconfig: `echo $DEFCONFIG`
+        " >> buildDetails.txt
+
+        echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
+
+        mv .config build_config.txt
+        gitsha1=$(git rev-parse --short HEAD)
+        buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
       working-directory: kernel_root
 
     - name: Upload kernel images
@@ -80,7 +91,7 @@ jobs:
 
     - name: Copy Image to AnyKernel3
       run: |
-        cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel3/
+          cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel3/
 
     - name: Upload AnyKernel3
       uses: actions/upload-artifact@v4
