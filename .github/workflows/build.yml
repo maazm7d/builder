@@ -116,8 +116,24 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
-          ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/rsuntk/rsuntkBotScript.git --depth=1 i && cp ./i/* . && rm -rf i && bash $(pwd)/rsuntkbot.sh $ZIP "`cat buildDetails.txt`"
-          fi
-        working-directory: kernel_root
+         if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
+         echo "Checking ZIP file..."
+         find `pwd` -name "*.zip"
+         ZIP=$(find `pwd` -name "*.zip")
+         echo "ZIP file: $ZIP"
+
+         echo "Cloning Telegram bot script..."
+         git clone https://github.com/rsuntk/rsuntkBotScript.git --depth=1 i
+
+         echo "Copying bot script files..."
+         cp ./i/* .
+         rm -rf i
+
+         echo "buildDetails.txt content:"
+         cat buildDetails.txt
+
+         echo "Running Telegram bot script..."
+         bash $(pwd)/rsuntkbot.sh "$ZIP" "`cat buildDetails.txt`"
+         fi
+
       
