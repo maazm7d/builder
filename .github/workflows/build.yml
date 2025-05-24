@@ -119,5 +119,5 @@ jobs:
           if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
           ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/rsuntk/rsuntkBotScript.git --depth=1 i && cp ./i/* . && rm -rf i && bash $(pwd)/rsuntkbot.sh $ZIP "`cat buildDetails.txt`"
           fi
-        working-directory: kernel_root
+      -  working-directory: kernel_root
       
