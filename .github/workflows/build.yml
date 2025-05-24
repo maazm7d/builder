@@ -116,12 +116,24 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          CLANG_VER: ${{ env.CLANG_VER }}
         run: |
           cd ak3_upload
           zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
           cd ..
+
+          CAPTION=$(cat <<EOF
+✅ Kernel build for Galaxy A12s
+
+Name: <code>${{ github.event.inputs.AK3_NAME }}</code>
+Clang: <code>${CLANG_VER}</code>
+<a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Build Logs</a>
+EOF
+)
+
           curl -F document=@"AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" \
                -F chat_id="$CHAT_ID" \
-               -F caption="✅ Kernel build for Galaxy A12s\n\nName: <code>${{ github.event.inputs.AK3_NAME }}</code>\nClang: <code>$CLANG_VER</code>\n<a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Logs</a>" \
+               -F caption="$CAPTION" \
                -F parse_mode=HTML \
                https://api.telegram.org/bot$BOT_TOKEN/sendDocument
+
