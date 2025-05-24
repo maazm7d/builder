@@ -81,6 +81,12 @@ jobs:
           buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d%H%M%S'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
         working-directory: kernel_root    
 
+      - name: Upload modules
+        uses: actions/upload-artifact@v4
+        with:
+         name: rtl8188eu.ko
+         path: kernel_root/drivers/rtl8188eus/rtl8188eu.ko
+
       - name: Upload config
         uses: actions/upload-artifact@v4
         with:
