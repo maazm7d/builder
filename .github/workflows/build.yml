@@ -85,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
          name: rtl8188eu.ko
-         path: kernel_root/drivers/rtl8188eus/rtl8188eu.ko
+         path: kernel_root/drivers/rtl8188eus/8188eu.ko
 
       - name: Upload config
         uses: actions/upload-artifact@v4
