@@ -59,30 +59,29 @@ jobs:
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export KBUILD_BUILD_USER="maaz"
           export KBUILD_BUILD_HOST="github"
-          export BUILD_START=$(date)
+          export BUILD_START=`date`
           export IS_CI=true
 
           export DEFCONFIG="exynos850-a12snsxx_defconfig"
           export DEVICE_ID="A12s"
 
           bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
+        
+          echo -e "Localversion: $(./getutsrel)\nClang version: $(clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//')\nBuild: $BUILD_START\nDefconfig: $DEFCONFIG" > buildDetails.txt
+
+ 
+          echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
 
           mv .config build_config.txt
           gitsha1=$(git rev-parse --short HEAD)
-          buildDetails="$(make kernelversion)-${DEVICE_ID}_${gitsha1}-$(date +'%Y%m%d')"
-          echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
-        working-directory: kernel_root
+          buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d%H%M%S'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
+      -  working-directory: kernel_root    
 
-      - name: Get Clang Version and Create buildDetails.txt
-        run: |
-          CLANG_VER=$(kernel_root/toolchains/clang/bin/clang --version | head -n1)
-          echo "CLANG_VER=$CLANG_VER" >> $GITHUB_ENV
-          echo "TITLE=Galaxy A12s Kernel" >> $GITHUB_ENV
-
-          echo "Localversion: $(kernel_root/getutsrel)" > kernel_root/buildDetails.txt
-          echo "Clang version: $CLANG_VER" >> kernel_root/buildDetails.txt
-          echo "Build: $(date)" >> kernel_root/buildDetails.txt
-          echo "Defconfig: exynos850-a12snsxx_defconfig" >> kernel_root/buildDetails.txt
+      - name: Upload config
+        uses: actions/upload-artifact@v4
+        with:
+         name: Config-${{ steps.buildKernel.outputs.buildDetails }}
+         path: kernel_root/build_config.txt
 
       - name: Upload kernel images
         uses: actions/upload-artifact@v4
@@ -110,30 +109,15 @@ jobs:
         with:
           name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
           path: ak3_upload
-
-      - name: Upload AnyKernel3 to Telegram
-        if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
+          
+      - name: Upload to Telegram
+        if: github.event.inputs.UPLOAD_TO_TG == 'true'
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-          CLANG_VER: ${{ env.CLANG_VER }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          cd ak3_upload
-          zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
-          cd ..
-
-          CAPTION=$(cat <<EOF
-✅ Kernel build for Galaxy A12s
-
-Name: <code>${{ github.event.inputs.AK3_NAME }}</code>
-Clang: <code>${CLANG_VER}</code>
-<a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Build Logs</a>
-EOF
-)
-
-          curl -F document=@"AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" \
-               -F chat_id="$CHAT_ID" \
-               -F caption="$CAPTION" \
-               -F parse_mode=HTML \
-               https://api.telegram.org/bot$BOT_TOKEN/sendDocument
-
+          if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
+          ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/rsuntk/rsuntkBotScript.git --depth=1 i && cp ./i/* . && rm -rf i && bash $(pwd)/rsuntkbot.sh $ZIP "`cat buildDetails.txt`"
+          fi
+        working-directory: kernel_root
+      
