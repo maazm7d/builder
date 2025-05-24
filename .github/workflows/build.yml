@@ -105,14 +105,14 @@ jobs:
           compression-level: 9
 
       - name: Download AnyKernel3 artifact
-        if: ${{ github.event.inputs.UPLOAD_TO_TG == true }}
+        if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
         uses: actions/download-artifact@v4
         with:
           name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
           path: ak3_upload
 
       - name: Upload AnyKernel3 to Telegram
-        if: ${{ github.event.inputs.UPLOAD_TO_TG == true }}
+        if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
