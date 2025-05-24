@@ -109,6 +109,12 @@ jobs:
         with:
           name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
           path: ak3_upload
+
+      - name: Create AnyKernel3 ZIP 
+        run: |
+          cd kernel_root/anykernel3
+          zip -r9 "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
+          ls -lh "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
           
       - name: Upload to Telegram
         if: github.event.inputs.UPLOAD_TO_TG == 'true'
@@ -117,9 +123,8 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
-          echo "Checking ZIP file..."
-          find `pwd` -name "*.zip"
-          ZIP=$(find `pwd` -name "*.zip")
+          echo "Checking ZIP file..."      
+          ZIP=$(find kernel_root/anykernel3 -name "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" | head -n1)
           echo "ZIP file: $ZIP"
 
           echo "Cloning Telegram bot script..."
