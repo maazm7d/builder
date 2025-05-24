@@ -75,7 +75,7 @@ jobs:
           mv .config build_config.txt
           gitsha1=$(git rev-parse --short HEAD)
           buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d%H%M%S'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
-      -  working-directory: kernel_root    
+        working-directory: kernel_root    
 
       - name: Upload config
         uses: actions/upload-artifact@v4
@@ -119,5 +119,5 @@ jobs:
           if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
           ZIP=$(find `pwd` -name "*.zip") && git clone https://github.com/rsuntk/rsuntkBotScript.git --depth=1 i && cp ./i/* . && rm -rf i && bash $(pwd)/rsuntkbot.sh $ZIP "`cat buildDetails.txt`"
           fi
-      -  working-directory: kernel_root
+        working-directory: kernel_root
       
