@@ -67,6 +67,10 @@ jobs:
         bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
 
           ## CREATE buildDetails.txt
+          - name: Get Clang Version
+    run: |
+       CLANG_VER=$(${{ github.workspace }}/toolchains/clang/bin/clang --version | head -n1)
+       echo "CLANG_VER=$CLANG_VER" >> $GITHUB_ENV
         printf "Localversion: `./getutsrel`
         Clang version: `clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`
         Build: `echo $BUILD_START`
@@ -78,11 +82,11 @@ jobs:
         mv .config build_config.txt
         gitsha1=$(git rev-parse --short HEAD)
         buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
-      working-directory: kernel_root
+       working-directory: kernel_root
 
-    - name: Upload kernel images
-      uses: actions/upload-artifact@v4
-      with:
+       - name: Upload kernel images
+       uses: actions/upload-artifact@v4
+       with:
         name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
         path: |
           kernel_root/arch/arm64/boot/Image.gz
