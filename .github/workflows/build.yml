@@ -19,108 +19,109 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        repository: maazm7d/kernel_samsung_a12
-        path: kernel_root
-        ref: ${{ github.event.inputs.BRANCH }}
-        show-progress: false
-        fetch-depth: 1
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          repository: maazm7d/kernel_samsung_a12
+          path: kernel_root
+          ref: ${{ github.event.inputs.BRANCH }}
+          show-progress: false
+          fetch-depth: 1
 
-    - name: Prepare dependencies
-      run: |
-        sudo apt update -y
-        sudo apt install bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4 -y
-        sudo aptitude install libssl-dev -y
+      - name: Prepare dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4 -y
+          sudo aptitude install libssl-dev -y
 
-    - name: Fetch toolchains (Clang 11 + GCC 4.9)
-      run: |
-        mkdir toolchains && cd toolchains
-        git clone --depth=1 -b clang-11 https://github.com/rsuntk/toolchains.git clang
-        git clone --depth=1 -b androidcc-4.9 https://github.com/rsuntk/toolchains.git google
-      working-directory: kernel_root
+      - name: Fetch toolchains (Clang 11 + GCC 4.9)
+        run: |
+          mkdir toolchains && cd toolchains
+          git clone --depth=1 -b clang-11 https://github.com/rsuntk/toolchains.git clang
+          git clone --depth=1 -b androidcc-4.9 https://github.com/rsuntk/toolchains.git google
+        working-directory: kernel_root
 
-    - name: Set timezone (Asia/Kolkata)
-      run: |
-        sudo rm /etc/localtime
-        sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+      - name: Set timezone (Asia/Kolkata)
+        run: |
+          sudo rm /etc/localtime
+          sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
-    - name: Clone KernelSU-Next
-      run: |
-        curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
-      working-directory: kernel_root
+      - name: Clone KernelSU-Next
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+        working-directory: kernel_root
 
-    - name: Build kernel
-      id: buildKernel
-      run: |
-        export PATH=$(pwd)/toolchains/clang/bin:$PATH
-        export CROSS_COMPILE=$(pwd)/toolchains/google/bin/aarch64-linux-android-
-        export CLANG_TRIPLE=aarch64-linux-gnu-
-        export KBUILD_BUILD_USER="maaz"
-        export KBUILD_BUILD_HOST="github"
-        export BUILD_START=`date`
-        export IS_CI=true
+      - name: Build kernel
+        id: buildKernel
+        run: |
+          export PATH=$(pwd)/toolchains/clang/bin:$PATH
+          export CROSS_COMPILE=$(pwd)/toolchains/google/bin/aarch64-linux-android-
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export KBUILD_BUILD_USER="maaz"
+          export KBUILD_BUILD_HOST="github"
+          export BUILD_START=$(date)
+          export IS_CI=true
 
-        export DEFCONFIG="exynos850-a12snsxx_defconfig"
-        export DEVICE_ID="A12s"
+          export DEFCONFIG="exynos850-a12snsxx_defconfig"
+          export DEVICE_ID="A12s"
 
-        bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
+          bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
 
-          ## CREATE buildDetails.txt
-          - name: Get Clang Version
-    run: |
-       CLANG_VER=$(${{ github.workspace }}/toolchains/clang/bin/clang --version | head -n1)
-       echo "CLANG_VER=$CLANG_VER" >> $GITHUB_ENV
-        printf "Localversion: `./getutsrel`
-        Clang version: `clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`
-        Build: `echo $BUILD_START`
-        Defconfig: `echo $DEFCONFIG`
-        " >> buildDetails.txt
+          mv .config build_config.txt
+          gitsha1=$(git rev-parse --short HEAD)
+          buildDetails="$(make kernelversion)-${DEVICE_ID}_${gitsha1}-$(date +'%Y%m%d')"
+          echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
+        working-directory: kernel_root
 
-        echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
+      - name: Get Clang Version and Create buildDetails.txt
+        run: |
+          CLANG_VER=$(kernel_root/toolchains/clang/bin/clang --version | head -n1)
+          echo "CLANG_VER=$CLANG_VER" >> $GITHUB_ENV
+          echo "TITLE=Galaxy A12s Kernel" >> $GITHUB_ENV
 
-        mv .config build_config.txt
-        gitsha1=$(git rev-parse --short HEAD)
-        buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
-       working-directory: kernel_root
+          echo "Localversion: $(kernel_root/getutsrel)" > kernel_root/buildDetails.txt
+          echo "Clang version: $CLANG_VER" >> kernel_root/buildDetails.txt
+          echo "Build: $(date)" >> kernel_root/buildDetails.txt
+          echo "Defconfig: exynos850-a12snsxx_defconfig" >> kernel_root/buildDetails.txt
 
-       - name: Upload kernel images
-       uses: actions/upload-artifact@v4
-       with:
-        name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
-        path: |
-          kernel_root/arch/arm64/boot/Image.gz
-          kernel_root/arch/arm64/boot/dts/exynos/*.dtb
-          kernel_root/arch/arm64/boot/dts/samsung/*.dtb
+      - name: Upload kernel images
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
+          path: |
+            kernel_root/arch/arm64/boot/Image.gz
+            kernel_root/arch/arm64/boot/dts/exynos/*.dtb
+            kernel_root/arch/arm64/boot/dts/samsung/*.dtb
 
-    - name: Copy Image to AnyKernel3
-      run: |
+      - name: Copy Image to AnyKernel3
+        run: |
           cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel3/
 
-    - name: Upload AnyKernel3
-      uses: actions/upload-artifact@v4
-      with:
-        name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
-        path: kernel_root/anykernel3/*
-        compression-level: 9
+      - name: Upload AnyKernel3
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
+          path: kernel_root/anykernel3/*
+          compression-level: 9
 
-    - name: Download AnyKernel3 artifact
-      if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
-      uses: actions/download-artifact@v4
-      with:
-        name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
-        path: ak3_upload
+      - name: Download AnyKernel3 artifact
+        if: ${{ github.event.inputs.UPLOAD_TO_TG == true }}
+        uses: actions/download-artifact@v4
+        with:
+          name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
+          path: ak3_upload
 
-    - name: Upload AnyKernel3 to Telegram
-      if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
-      env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
-      run: |
-        cd ak3_upload
-        zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
-        cd ..
-        curl -F document=@"AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" \
-             -F chat_id="$CHAT_ID" \
-             -F caption="✅ Kernel build for A12s: ${{ github.event.inputs.AK3_NAME }}" \
-             https://api.telegram.org/bot$BOT_TOKEN/sendDocument
+      - name: Upload AnyKernel3 to Telegram
+        if: ${{ github.event.inputs.UPLOAD_TO_TG == true }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          cd ak3_upload
+          zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
+          cd ..
+          curl -F document=@"AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" \
+               -F chat_id="$CHAT_ID" \
+               -F caption="✅ Kernel build for Galaxy A12s\n\nName: <code>${{ github.event.inputs.AK3_NAME }}</code>\nClang: <code>$CLANG_VER</code>\n<a href=\"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Logs</a>" \
+               -F parse_mode=HTML \
+               https://api.telegram.org/bot$BOT_TOKEN/sendDocument
