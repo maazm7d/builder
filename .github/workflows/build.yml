@@ -135,5 +135,6 @@ jobs:
          echo "Running Telegram bot script..."
          bash $(pwd)/rsuntkbot.sh "$ZIP" "`cat buildDetails.txt`"
          fi
+         working-directory: kernel_root
 
       
