@@ -124,7 +124,7 @@ jobs:
         run: |
           if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
           echo "Checking ZIP file..."      
-          ZIP=$(find kernel_root/anykernel3 -name "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" | head -n1)
+          ZIP="./anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
           echo "ZIP file: $ZIP"
 
           echo "Cloning Telegram bot script..."
