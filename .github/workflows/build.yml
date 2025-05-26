@@ -136,19 +136,12 @@ jobs:
           echo "Checking ZIP file..."      
           ZIP="./anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
           echo "ZIP file: $ZIP"
-
-          echo "Cloning Telegram bot script..."
-          git clone https://github.com/rsuntk/rsuntkBotScript.git --depth=1 i
-
-          echo "Copying bot script files..."
-          cp ./i/* .
-          rm -rf i
-
+          
           echo "buildDetails.txt content:"
           cat buildDetails.txt
 
           echo "Running Telegram bot script..."
-          bash $(pwd)/rsuntkbot.sh "$ZIP" "`cat buildDetails.txt`"
+          bash $(pwd)/xedbot.sh "$ZIP" "`cat buildDetails.txt`"
           fi
         working-directory: kernel_root
 
