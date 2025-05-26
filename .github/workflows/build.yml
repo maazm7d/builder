@@ -71,7 +71,7 @@ jobs:
 
           bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
         
-          echo -e "Localversion: $(./scripts/setlocalversion)\n\nClang version: $(clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//')\n\nBuild: $BUILD_START\n\nDefconfig: $DEFCONFIG\n\nChangelog: ${{ github.event.inputs.CHANGELOG }}\n\nrtl8188eu.ko: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" > buildDetails.txt
+          echo -e "Localversion: $(./scripts/setlocalversion)\n\nClang version: $(clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//')\n\nBuild: $BUILD_START\n\nDefconfig: $DEFCONFIG\n\nChangelog: ${{ github.event.inputs.CHANGELOG }}" > buildDetails.txt
 
  
           echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
