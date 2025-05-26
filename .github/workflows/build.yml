@@ -132,15 +132,9 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
-          if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then
-          echo "Checking ZIP file..."      
+          if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then   
           ZIP="./anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
-          echo "ZIP file: $ZIP"
-          
-          echo "buildDetails.txt content:"
           cat buildDetails.txt
-
-          echo "Running Telegram bot script..."
           bash $(pwd)/xedbot.sh "$ZIP" "`cat buildDetails.txt`"
           fi
         working-directory: kernel_root
