@@ -26,7 +26,7 @@ jobs:
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
-          repository: maazm7d/kernel_samsung_a12
+          repository: maazm7d/kernel_samsung_m12
           path: kernel_root
           ref: ${{ github.event.inputs.BRANCH }}
           show-progress: false
@@ -66,8 +66,8 @@ jobs:
           export BUILD_START=`date`
           export IS_CI=true
 
-          export DEFCONFIG="exynos850-a12snsxx_defconfig"
-          export DEVICE_ID="A12s"
+          export DEFCONFIG="exynos850-m12nsxx_defconfig"
+          export DEVICE_ID="M12"
 
           bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
         
@@ -104,13 +104,13 @@ jobs:
 
       - name: Copy Image to AnyKernel3
         run: |
-          cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel3/
+          cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel/
 
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
           name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
-          path: kernel_root/anykernel3/*
+          path: kernel_root/anykernel/*
           compression-level: 9
 
       - name: Download AnyKernel3 artifact
@@ -122,7 +122,7 @@ jobs:
 
       - name: Create AnyKernel3 ZIP 
         run: |
-          cd kernel_root/anykernel3
+          cd kernel_root/anykernel
           zip -r9 "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
           ls -lh "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
           
@@ -133,7 +133,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then   
-          ZIP="./anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
+          ZIP="./anykernel/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
           cat buildDetails.txt
           git clone https://github.com/maazm7d/builder.git --depth=1 i && cp ./i/xedbot.sh . && rm -rf i
           bash $(pwd)/xedbot.sh "$ZIP" "`cat buildDetails.txt`"
