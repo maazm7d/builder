@@ -15,129 +15,96 @@ on:
         type: boolean
       CHANGELOG:
         description: Enter changelog
-        required: true
         default: 'No changelog provided'
+        required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Kernel Source
-        uses: actions/checkout@v4
-        with:
-          repository: maazm7d/kernel_samsung_m12
-          path: kernel_root
-          ref: ${{ github.event.inputs.BRANCH }}
-          show-progress: false
-          fetch-depth: 1
+    # 📁 Checkout Kernel Source
+    - uses: actions/checkout@v4
+      with:
+        repository: maazm7d/kernel_samsung_m12
+        path: kernel_root
+        ref: ${{ github.event.inputs.BRANCH }}
+        show-progress: false
+        fetch-depth: 1
 
-      - name: Prepare dependencies
-        run: |
-          sudo apt update -y
-          sudo apt install bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4 -y
-          sudo aptitude install libssl-dev -y
+    # 🛠️ Install Dependencies
+    - name: Install Packages
+      run: |
+        sudo apt update
+        sudo apt install -y bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4
+        sudo aptitude install -y libssl-dev
 
-      - name: Fetch toolchains (Clang 11 + GCC 4.9)
-        run: |
-          mkdir toolchains && cd toolchains
-          git clone --depth=1 -b clang-11 https://github.com/rsuntk/toolchains.git clang
-          git clone --depth=1 -b androidcc-4.9 https://github.com/rsuntk/toolchains.git google
-        working-directory: kernel_root
+    # 🧰 Fetch Toolchains
+    - name: Fetch Toolchains
+      run: |
+        mkdir toolchains && cd toolchains
+        git clone --depth=1 -b clang-11 https://github.com/rsuntk/toolchains.git clang
+        git clone --depth=1 -b androidcc-4.9 https://github.com/rsuntk/toolchains.git google
+      working-directory: kernel_root
 
-      - name: Set timezone (Asia/Kolkata)
-        run: |
-          sudo rm /etc/localtime
-          sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+    # 🌍 Set Timezone
+    - run: sudo ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
-      - name: Clone KernelSU-Next
-        run: |
-          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
-        working-directory: kernel_root
+    # ⚙️ Clone KernelSU
+    - name: Setup KernelSU
+      run: curl -LSs https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
+      working-directory: kernel_root
 
-      - name: Build kernel
-        id: buildKernel
-        run: |
-          export PATH=$(pwd)/toolchains/clang/bin:$PATH
-          export CROSS_COMPILE=$(pwd)/toolchains/google/bin/aarch64-linux-android-
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export KBUILD_BUILD_USER="maaz"
-          export KBUILD_BUILD_HOST="github"
-          export BUILD_START=`date`
-          export IS_CI=true
+    # 🔨 Kernel Build
+    - name: Build Kernel
+      id: build
+      run: |
+        source ./build_kernel.sh kernel --jobs $(nproc --all) exynos850-m12nsxx_defconfig
+        echo "TITLE=Galaxy M12 Kernel" >> $GITHUB_ENV
 
-          export DEFCONFIG="exynos850-m12nsxx_defconfig"
-          export DEVICE_ID="M12"
+        mv .config build_config.txt
+        gitsha=$(git rev-parse --short HEAD)
+        details="$(make kernelversion)-M12_${gitsha}-$(date +'%Y%m%d%H%M%S')"
+        echo "buildDetails=$details" >> $GITHUB_OUTPUT
 
-          bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
-        
-          echo -e "Localversion: $(./scripts/setlocalversion)\n\nClang version: $(clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//')\n\nBuild: $BUILD_START\n\nDefconfig: $DEFCONFIG\n\nChangelog: ${{ github.event.inputs.CHANGELOG }}" > buildDetails.txt
+        clang --version | grep version >> buildDetails.txt
+        echo -e "\nBuild: $(date)\nDefconfig: exynos850-m12nsxx_defconfig\nChangelog: ${{ github.event.inputs.CHANGELOG }}" >> buildDetails.txt
+      working-directory: kernel_root
 
- 
-          echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
+    # 📤 Uploads
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Config-${{ steps.build.outputs.buildDetails }}
+        path: kernel_root/build_config.txt
 
-          mv .config build_config.txt
-          gitsha1=$(git rev-parse --short HEAD)
-          buildDetails="`make kernelversion`-`echo $DEVICE`_`echo $gitsha1`-`date +'%Y%m%d%H%M%S'`" && echo "buildDetails=$buildDetails" >> $GITHUB_OUTPUT
-        working-directory: kernel_root   
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-${{ steps.build.outputs.buildDetails }}
+        path: |
+          kernel_root/arch/arm64/boot/Image.gz
+          kernel_root/arch/arm64/boot/dts/exynos/*.dtb
+          kernel_root/arch/arm64/boot/dts/samsung/*.dtb
 
-      - name: Upload config
-        uses: actions/upload-artifact@v4
-        with:
-         name: Config-${{ steps.buildKernel.outputs.buildDetails }}
-         path: kernel_root/build_config.txt
+    - name: Package AnyKernel3
+      run: |
+        cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel/
+        cd kernel_root/anykernel
+        zip -r9 "../AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" .
+      working-directory: kernel_root
 
-      - name: Upload modules
-        uses: actions/upload-artifact@v4
-        with:
-         name: rtl8188eus.ko
-         path: kernel_root/drivers/staging/rtl8188eus/8188eu.ko
+    - uses: actions/upload-artifact@v4
+      with:
+        name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
+        path: kernel_root/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip
+        compression-level: 9
 
-      - name: Upload kernel images
-        uses: actions/upload-artifact@v4
-        with:
-          name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
-          path: |
-            kernel_root/arch/arm64/boot/Image.gz
-            kernel_root/arch/arm64/boot/dts/exynos/*.dtb
-            kernel_root/arch/arm64/boot/dts/samsung/*.dtb
-
-      - name: Copy Image to AnyKernel3
-        run: |
-          cp kernel_root/arch/arm64/boot/Image kernel_root/anykernel/
-
-      - name: Upload AnyKernel3
-        uses: actions/upload-artifact@v4
-        with:
-          name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
-          path: kernel_root/anykernel/*
-          compression-level: 9
-
-      - name: Download AnyKernel3 artifact
-        if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
-          path: ak3_upload
-
-      - name: Create AnyKernel3 ZIP 
-        run: |
-          cd kernel_root/anykernel
-          zip -r9 "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
-          ls -lh "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
-          
-      - name: Upload to Telegram
-        if: github.event.inputs.UPLOAD_TO_TG == 'true'
-        env:
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        run: |
-          if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then   
-          ZIP="./anykernel/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
-          cat buildDetails.txt
-          git clone https://github.com/maazm7d/builder.git --depth=1 i && cp ./i/xedbot.sh . && rm -rf i
-          bash $(pwd)/xedbot.sh "$ZIP" "`cat buildDetails.txt`"
-          fi
-        working-directory: kernel_root
-
-      
+    # 🚀 Upload to Telegram (Optional)
+    - name: Upload to Telegram
+      if: github.event.inputs.UPLOAD_TO_TG == 'true'
+      env:
+        CHAT_ID: ${{ secrets.CHAT_ID }}
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      run: |
+        git clone https://github.com/maazm7d/builder.git --depth=1 tmp
+        bash ./tmp/xedbot.sh "./kernel_root/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" "`cat kernel_root/buildDetails.txt`"
+        rm -rf tmp
