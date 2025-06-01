@@ -87,12 +87,6 @@ jobs:
          name: Config-${{ steps.buildKernel.outputs.buildDetails }}
          path: kernel_root/build_config.txt
 
-      - name: Upload modules
-        uses: actions/upload-artifact@v4
-        with:
-         name: rtl8188eus.ko
-         path: kernel_root/drivers/staging/rtl8188eus/8188eu.ko
-
       - name: Upload kernel images
         uses: actions/upload-artifact@v4
         with:
