@@ -59,7 +59,19 @@ jobs:
     - name: Build Kernel
       id: build
       run: |
-        source ./build_kernel.sh kernel --jobs $(nproc --all) exynos850-m12nsxx_defconfig
+        export PATH=$(pwd)/toolchains/clang/bin:$PATH
+        export CROSS_COMPILE=$(pwd)/toolchains/google/bin/aarch64-linux-android-
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        export KBUILD_BUILD_USER="maaz"
+        export KBUILD_BUILD_HOST="github"
+        export BUILD_START=`date`
+        export IS_CI=true
+
+        export DEFCONFIG="exynos850-m12nsxx_defconfig"
+        export DEVICE_ID="M12"
+
+        bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
+
         echo "TITLE=Galaxy M12 Kernel" >> $GITHUB_ENV
 
         mv .config build_config.txt
