@@ -68,6 +68,7 @@ jobs:
 
           export DEFCONFIG="exynos850-m12nsxx_defconfig"
           export DEVICE_ID="M12"
+          export KERNEL_SOURCE="https://github.com/maazm7d/kernel_samsung_m12"
 
           bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
         
