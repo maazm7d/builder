@@ -82,6 +82,7 @@ jobs:
           export KBUILD_BUILD_HOST="github"
           export BUILD_START=`date`
           export IS_CI=true
+          export K_S=https://github.com/maazm7d/kernel_samsung_a12
 
           export DEFCONFIG="exynos850-a12snsxx_defconfig"
           export DEVICE_ID="A12s"
