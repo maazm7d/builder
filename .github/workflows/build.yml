@@ -21,6 +21,9 @@ on:
       UPLOAD_TO_TG:
         description: Upload to Telegram
         type: boolean
+      UPLOAD_TO_GH:
+        description: Upload to GitHub Release
+        type: boolean
       CHANGELOG:
         description: Enter changelog
         required: true
@@ -40,11 +43,13 @@ jobs:
           show-progress: false
           fetch-depth: 1
 
-      - name: Prepare dependencies
+      - name: Prepare dependencies + fetch tags
         run: |
           sudo apt update -y
           sudo apt install bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4 -y
           sudo aptitude install libssl-dev -y
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch --tags --force
 
       - name: Fetch toolchains (Clang 11 + GCC 4.9)
         run: |
@@ -148,5 +153,48 @@ jobs:
           bash $(pwd)/xedbot.sh "$ZIP" "`cat buildDetails.txt`"
           fi
         working-directory: kernel_root
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          set -e
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$latest_tag" ]; then
+          echo "No previous tag found. Using full commit history."
+          changelog=$(git log --pretty=format:"- %s (%an)" --no-merges)
+          else
+          echo "Found last tag: $latest_tag"
+          changelog=$(git log "${latest_tag}..HEAD" --pretty=format:"- %s (%an)" --no-merges)
+          fi
+
+                # Save changelog to output
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$changelog" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Generate tag name
+        id: tag
+        run: |
+         TAG_NAME="build-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
+         echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to GitHub Release
+        if: github.event.inputs.UPLOAD_TO_GH == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: "${{ steps.tag.outputs.tag_name }}"
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: kernel_root/anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+
+
+
+
+        
+
+        
 
       
