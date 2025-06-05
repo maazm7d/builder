@@ -4,6 +4,7 @@ msg="*${TITLE//_/\\_}*
 ${2//\\/\\\\}
 \`\`\`
 [View Workflow Run](${GITHUB_SERVER_URL//_/\\_}/${GITHUB_REPOSITORY//_/\\_}/actions/runs/${GITHUB_RUN_ID})
+[Kernel Source](${K_S//_/\\_})
 *Note: Always backup working boot before flash\\.*"
 
 file="$1"
