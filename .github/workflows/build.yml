@@ -190,7 +190,7 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           files: kernel_root/anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         
 
 
