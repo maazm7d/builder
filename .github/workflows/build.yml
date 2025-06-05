@@ -41,7 +41,7 @@ jobs:
           path: kernel_root
           ref: ${{ github.event.inputs.BRANCH }}
           show-progress: false
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Prepare dependencies + fetch tags
         run: |
@@ -172,6 +172,7 @@ jobs:
           echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
           echo "$changelog" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+        working-directory: kernel_root
 
       - name: Generate tag name
         id: tag
