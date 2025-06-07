@@ -18,6 +18,9 @@ on:
       AK3_NAME:
         description: Enter custom name for AnyKernel3 artifact
         required: true
+      SELINUX_PERMISSIVE:
+        description: Permissive SELinux
+        type: boolean
       UPLOAD_TO_TG:
         description: Upload to Telegram
         type: boolean
@@ -86,6 +89,26 @@ jobs:
 
           export DEFCONFIG="exynos850-a12snsxx_defconfig"
           export DEVICE_ID="A12s"
+
+          if [[ "${{ github.event.inputs.SELINUX_PERMISSIVE }}" == 'true' ]]; then
+          echo "Switching SELinux to Permissive mode..."
+
+          # Replace selinux directory with permissive one
+          rm -rf security/selinux
+          git clone --depth=1 -b bringup https://github.com/rsuntk/selinux_perm.git security/selinux
+          rm -rf security/selinux/.git
+
+          # Set permissive mode in defconfig
+          echo "CONFIG_SECURITY_SELINUX_ALWAYS_PERMISSIVE=y" >> arch/arm64/configs/$DEFCONFIG
+          grep "PERMISSIVE" arch/arm64/configs/$DEFCONFIG
+    
+          SELINUX_STATE="Permissive"
+          else
+          SELINUX_STATE="Enforcing"
+          fi
+
+          # Show final SELinux state
+          echo "SELinux is set to: $SELINUX_STATE"
 
           bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
         
