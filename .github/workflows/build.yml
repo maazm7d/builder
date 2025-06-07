@@ -107,8 +107,17 @@ jobs:
           echo "SELinux is set to: $SELINUX_STATE"
 
           bash $(pwd)/build_kernel.sh kernel --jobs $(nproc --all) $DEFCONFIG
+
+          
+         
+          
+          	KSU_REV_COUNT=$(cd KernelSU && git rev-list --count HEAD)
+          	KSU_VERSION=$(expr 10200 + $KSU_REV_COUNT)
+          SUSFS_VERSION="1.5.7"
+          
+          echo "- KernelSU version: $KSU_VERSION"
         
-          echo -e "Localversion: $(./scripts/setlocalversion)\n\nClang version: $(clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//')\n\nBuild: $BUILD_START\n\nDefconfig: $DEFCONFIG\n\nSELinux: $SELINUX_STATE" > buildDetails.txt
+          echo -e "Localversion: $(./scripts/setlocalversion)\n\nClang version: $(clang -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//')\n\nBuild: $BUILD_START\n\nDefconfig: $DEFCONFIG\n\nSELinux: $SELINUX_STATE\n\nKernelSU-Next: KSU_VERSION\n\nSUSFS: SUSFS_VERSION" > buildDetails.txt
 
  
           echo "TITLE=Galaxy `echo $DEVICE_ID` Kernel" >> $GITHUB_ENV
