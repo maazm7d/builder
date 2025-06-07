@@ -93,11 +93,7 @@ jobs:
           if [[ "${{ github.event.inputs.SELINUX_PERMISSIVE }}" == 'true' ]]; then
           echo "Switching SELinux to Permissive mode..."
 
-          # Replace selinux directory with permissive one
-          rm -rf security/selinux
-          git clone --depth=1 -b permissive https://github.com/maazm7d/builder.git security/selinux
-          rm -rf security/selinux/.git
-
+          
           # Set permissive mode in defconfig
           echo "CONFIG_SECURITY_SELINUX_ALWAYS_PERMISSIVE=y" >> arch/arm64/configs/$DEFCONFIG
           grep "PERMISSIVE" arch/arm64/configs/$DEFCONFIG
