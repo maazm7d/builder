@@ -112,7 +112,7 @@ jobs:
           
          
           
-          KSU_REV_COUNT=$(cd KernelSU && git rev-list --count HEAD)
+          KSU_REV_COUNT=$(cd KernelSU-Next && git rev-list --count HEAD)
           	KSU_VERSION=$(expr 10200 + $KSU_REV_COUNT)
           SUSFS_VERSION="1.5.7"
           
