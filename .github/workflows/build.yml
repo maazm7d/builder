@@ -7,14 +7,9 @@ on:
         description: Kernel branch
         default: 'main'
         required: true
-      ROOT_IMPL:
-       description: Select KSU
-       required: true
-       default: 'kernelsu-next'
-       type: choice
-       options:
-         - kernelsu-next
-         - sukisu
+      KERNELSU_NEXT:
+        description: Use KernelSU-Next ?
+        type: boolean
       AK3_NAME:
         description: Enter custom name for AnyKernel3 artifact
         required: true
@@ -63,18 +58,12 @@ jobs:
           sudo rm /etc/localtime
           sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
-      - name: Clone input ksu
+      - name: Clone KernelSU-Next
+        if: ${{ github.event.inputs.KERNELSU_NEXT == 'true' }}
         run: |
-          case "${{ github.event.inputs.ROOT_IMPL }}" in
-          kernelsu-next)
           curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
-          ;;
-          sukisu)
-          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-dev
-          ;;
-          esac
         working-directory: kernel_root
-
+ 
       - name: Build kernel
         id: buildKernel
         run: |
