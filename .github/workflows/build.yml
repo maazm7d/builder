@@ -7,12 +7,12 @@ on:
         description: Kernel branch
         default: 'main'
         required: true
-      KERNELSU_NEXT:
-        description: Use KernelSU-Next ?
-        type: boolean
       AK3_NAME:
         description: Enter custom name for AnyKernel3 artifact
         required: true
+      KERNELSU_NEXT:
+        description: Use KernelSU-Next ?
+        type: boolean
       SELINUX_PERMISSIVE:
         description: Permissive SELinux
         type: boolean
