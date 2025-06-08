@@ -8,19 +8,19 @@ on:
         default: 'main'
         required: true
       AK3_NAME:
-        description: AnyKernel3 ZIP name
+        description: Enter custom name for AnyKernel3 artifact
         required: true
       KERNELSU_NEXT:
-        description: Use KernelSU-Next?
+        description: Use KernelSU-Next ?
         type: boolean
       SELINUX_PERMISSIVE:
-        description: Permissive SELinux?
+        description: Permissive SELinux
         type: boolean
       UPLOAD_TO_TG:
-        description: Upload to Telegram?
+        description: Upload to Telegram
         type: boolean
       UPLOAD_TO_GH:
-        description: Upload to GitHub Release?
+        description: Upload to GitHub Release
         type: boolean
 
 jobs:
@@ -28,49 +28,110 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      - name: Checkout Kernel Source
-        uses: actions/checkout@v4
+      # Checkout kernel source
+      - uses: actions/checkout@v4
         with:
           repository: maazm7d/kernel_samsung_a12
-          ref: ${{ github.event.inputs.BRANCH }}
           path: kernel_root
+          ref: ${{ github.event.inputs.BRANCH }}
           fetch-depth: 0
 
-      - name: Setup Dependencies & Toolchains
+      # Install packages, clone toolchains, fetch tags
+      - name: Setup build environment
         run: |
           sudo apt update && sudo apt install -y bc cpio flex bison aptitude git python-is-python3 tar perl wget curl lz4
           sudo aptitude install -y libssl-dev
           sudo ln -sf /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
 
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          cd kernel_root && git fetch --tags --force
+          cd kernel_root
+          git fetch --tags --force
 
-          mkdir -p kernel_root/toolchains && cd kernel_root/toolchains
+          mkdir toolchains && cd toolchains
           git clone --depth=1 -b clang-11 https://github.com/rsuntk/toolchains.git clang
           git clone --depth=1 -b androidcc-4.9 https://github.com/rsuntk/toolchains.git google
+        shell: bash
 
-      - name: Clone KernelSU-Next (if needed)
+      # Clone KernelSU-Next if selected
+      - name: Clone KernelSU-Next
         if: ${{ github.event.inputs.KERNELSU_NEXT == 'true' }}
         run: |
-          cd kernel_root
-          curl -LSs https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
+          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+        working-directory: kernel_root
 
-      - name: Run Kernel Build Script
+      # Build the kernel
+      - name: Build Kernel
+        id: buildKernel
         run: |
-          chmod +x kernel_root/ci_build.sh
-          kernel_root/ci_build.sh "${{ github.event.inputs.SELINUX_PERMISSIVE }}" "${{ github.event.inputs.KERNELSU_NEXT }}" "${{ github.event.inputs.AK3_NAME }}"
+          cd kernel_root
+          export PATH=$PWD/toolchains/clang/bin:$PATH
+          export CROSS_COMPILE=$PWD/toolchains/google/bin/aarch64-linux-android-
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export KBUILD_BUILD_USER="maaz"
+          export KBUILD_BUILD_HOST="github"
+          export BUILD_START=$(date)
+          export DEFCONFIG="exynos850-a12snsxx_defconfig"
+          export DEVICE_ID="A12s"
 
-      - name: Upload Kernel Artifacts
-        uses: actions/upload-artifact@v4
+          # Set SELinux mode if selected
+          if [[ "${{ github.event.inputs.SELINUX_PERMISSIVE }}" == 'true' ]]; then
+            echo "CONFIG_SECURITY_SELINUX_ALWAYS_PERMISSIVE=y" >> arch/arm64/configs/$DEFCONFIG
+            SELINUX_STATE="Permissive"
+          else
+            SELINUX_STATE="Enforcing"
+          fi
+          echo "SELinux is set to: $SELINUX_STATE"
+
+          # Build the kernel
+          bash ./build_kernel.sh kernel --jobs $(nproc) $DEFCONFIG
+
+          # KernelSU metadata
+          if [[ -d KernelSU-Next ]]; then
+            KSU_VERSION=$((10200 + $(cd KernelSU-Next && git rev-list --count HEAD)))
+            SUSFS_VERSION="1.5.7"
+          else
+            KSU_VERSION="N/A"
+            SUSFS_VERSION="N/A"
+          fi
+
+          # Output build details
+          echo -e "Localversion: $(./scripts/setlocalversion)\nClang: $(clang -v 2>&1 | grep ' version ')\nBuild: $BUILD_START\nSELinux: $SELINUX_STATE\nKSU: $KSU_VERSION\nSUSFS: $SUSFS_VERSION" > buildDetails.txt
+          echo "TITLE=Galaxy $DEVICE_ID Kernel" >> $GITHUB_ENV
+
+          mv .config build_config.txt
+          gitsha1=$(git rev-parse --short HEAD)
+          echo "buildDetails=$(make kernelversion)-$DEVICE_ID-${gitsha1}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+      # Upload kernel config
+      - uses: actions/upload-artifact@v4
         with:
-          name: Kernel-${{ github.event.inputs.AK3_NAME }}
-          path: |
-            kernel_root/build_config.txt
-            kernel_root/buildDetails.txt
-            kernel_root/arch/arm64/boot/Image.gz
-            kernel_root/arch/arm64/boot/dts/**.dtb
-            kernel_root/anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip
+          name: Config-${{ steps.buildKernel.outputs.buildDetails }}
+          path: kernel_root/build_config.txt
 
+      # Upload kernel images
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-${{ steps.buildKernel.outputs.buildDetails }}
+          path: |
+            kernel_root/arch/arm64/boot/Image.gz
+            kernel_root/arch/arm64/boot/dts/exynos/*.dtb
+            kernel_root/arch/arm64/boot/dts/samsung/*.dtb
+
+      # Prepare AnyKernel3 ZIP
+      - name: Zip AnyKernel3
+        run: |
+          cd kernel_root/anykernel3
+          cp ../arch/arm64/boot/Image .
+          zip -r9 "AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" ./*
+        shell: bash
+
+      # Upload AK3 ZIP as artifact
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AnyKernel3-${{ github.event.inputs.AK3_NAME }}
+          path: kernel_root/anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip
+
+      # Upload to Telegram
       - name: Upload to Telegram
         if: ${{ github.event.inputs.UPLOAD_TO_TG == 'true' }}
         env:
@@ -79,25 +140,34 @@ jobs:
         run: |
           cd kernel_root
           git clone --depth=1 -b telegram https://github.com/maazm7d/builder.git i && cp i/xedbot.sh . && rm -rf i
-          bash xedbot.sh "anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" "$(cat buildDetails.txt)"
+          bash xedbot.sh "./anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip" "$(cat buildDetails.txt)"
 
-      - name: Release to GitHub
-        if: ${{ github.event.inputs.UPLOAD_TO_GH == 'true' }}
-        id: release
+      # Generate tag and changelog for GitHub Release
+      - name: Generate Release Info
+        id: release_info
         run: |
           cd kernel_root
-          TAG_NAME="build-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
-          CHANGELOG=$(git log -1 --pretty=format:"- %s (%an)")
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-          echo "CHANGELOG=$CHANGELOG" >> $GITHUB_ENV
+          tag="build-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
+          echo "tag_name=$tag" >> $GITHUB_OUTPUT
 
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [[ -z "$latest_tag" ]]; then
+            log=$(git log --pretty=format:"- %s (%an)" --no-merges)
+          else
+            log=$(git log "${latest_tag}..HEAD" --pretty=format:"- %s (%an)" --no-merges)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$log" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Upload to GitHub Release
       - name: Upload to GitHub Release
         if: ${{ github.event.inputs.UPLOAD_TO_GH == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG_NAME }}
-          name: ${{ env.TAG_NAME }}
-          body: ${{ env.CHANGELOG }}
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: ${{ steps.release_info.outputs.tag_name }}
+          body: ${{ steps.release_info.outputs.changelog }}
           files: kernel_root/anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
