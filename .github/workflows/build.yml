@@ -28,7 +28,7 @@ jobs:
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
-          repository: maazm7d/kernel_samsung_a12-test
+          repository: maazm7d/kernel_samsung_a12
           path: kernel_root
           ref: ${{ github.event.inputs.BRANCH }}
           show-progress: false
