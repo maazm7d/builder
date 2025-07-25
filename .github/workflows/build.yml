@@ -127,9 +127,9 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           if [ ! -z "${{ secrets.BOT_TOKEN }}" ]; then   
-          ZIP="./anykernel/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
+          ZIP="./anykernel3/AnyKernel3-${{ github.event.inputs.AK3_NAME }}.zip"
           cat buildDetails.txt
-          git clone https://github.com/maazm7d/builder.git --depth=1 i && cp ./i/xedbot.sh . && rm -rf i
+          git clone --depth=1 -b telegram https://github.com/maazm7d/builder.git i && cp ./i/xedbot.sh . && rm -rf i
           bash $(pwd)/xedbot.sh "$ZIP" "`cat buildDetails.txt`"
           fi
         working-directory: kernel_root
