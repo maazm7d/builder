@@ -61,7 +61,7 @@ jobs:
       - name: Clone KernelSU-Next
         if: ${{ github.event.inputs.KERNELSU_NEXT == 'true' }}
         run: |
-          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -
         working-directory: kernel_root
  
       - name: Build kernel
