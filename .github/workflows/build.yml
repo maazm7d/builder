@@ -10,6 +10,9 @@ on:
       AK3_NAME:
         description: Enter custom name for AnyKernel3 artifact
         required: true
+      KERNELSU_NEXT:
+        description: Use KernelSU-Next ?
+        type: boolean
       SELINUX_PERMISSIVE:
         description: Permissive SELinux
         type: boolean
@@ -33,7 +36,6 @@ jobs:
           ref: ${{ github.event.inputs.BRANCH }}
           show-progress: false
           fetch-depth: 0
-          submodules: 'recursive'
 
       - name: Prepare dependencies + fetch tags
         run: |
@@ -55,6 +57,12 @@ jobs:
         run: |
           sudo rm /etc/localtime
           sudo ln -s /usr/share/zoneinfo/Asia/Kolkata /etc/localtime
+
+      - name: Clone KernelSU-Next
+        if: ${{ github.event.inputs.KERNELSU_NEXT == 'true' }}
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next-susfs/kernel/setup.sh" | bash -s next-susfs
+        working-directory: kernel_root
  
       - name: Build kernel
         id: buildKernel
